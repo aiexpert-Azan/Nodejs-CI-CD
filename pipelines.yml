@@ -1,0 +1,33 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildDocker
+    steps:
+    - task: Docker@2
+      inputs:
+        command: buildAndPush
+        repository: mynodeapp
+        dockerfile: '**/Dockerfile'
+        containerRegistry: 'MyDockerRegistryServiceConnection'
+        tags: latest
+
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - job: DeployToVM
+    steps:
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'sshconnection'
+        commands: |
+          cd ~/my-node-app
+          git pull origin main
+          sudo docker-compose down
+          sudo docker-compose up -d --build
+
