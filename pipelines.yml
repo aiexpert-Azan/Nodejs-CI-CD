@@ -2,44 +2,54 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'   # <-- replace with your self-hosted agent pool name
+  name: 'New-pool'  # since you’re using self-hosted agent
 
 variables:
-  acrName: 'azanacr'
-  acrLoginServer: 'azanacr-f7eabjd2gsczcke4.azurecr.io'
-  imageName: 'nodeapp'
-  tag: $(Build.BuildId)
+  IMAGE_NAME: nodeapp
+  IMAGE_TAG: $(Build.BuildId)
 
 stages:
 - stage: Build
   jobs:
-  - job: BuildAndPush
+  - job: BuildDocker
     steps:
     - script: |
         echo "Logging in to ACR..."
-        docker login $(acrLoginServer) -u $(acrName) -p $(acrPassword)
+        docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
+          -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
 
-        echo "Building Docker image..."
-        docker build -t $(acrLoginServer)/$(imageName):$(tag) .
-        docker tag $(acrLoginServer)/$(imageName):$(tag) $(acrLoginServer)/$(imageName):latest
+        echo "Building and pushing image..."
+        docker build -t azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) .
+        docker push azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
 
-        echo "Pushing images to ACR..."
-        docker push $(acrLoginServer)/$(imageName):$(tag)
-        docker push $(acrLoginServer)/$(imageName):latest
-      displayName: "Build & Push Docker Image"
+        echo "Tagging latest..."
+        docker tag azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) \
+          azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):latest
+        docker push azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):latest
+      displayName: 'Build & Push Docker Image'
 
 - stage: Deploy
   dependsOn: Build
   jobs:
   - job: DeployToVM
     steps:
-    - script: |
-        echo "Logging in to ACR..."
-        docker login $(acrLoginServer) -u $(acrName) -p $(acrPassword)
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'sshconnection'
+        commands: |
+          cd ~/my-node-app
+          echo "Logging in to ACR..."
+          docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
+            -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
 
-        echo "Deploying app with Docker Compose..."
-        export TAG=$(tag)
-        cd ~/my-node-app
-        docker-compose pull
-        docker-compose up -d
-      displayName: "Deploy with Docker Compose"
+          echo "Stopping old containers for this project..."
+          docker-compose down || true
+
+          echo "Cleaning up unused images..."
+          docker image prune -af || true
+
+          echo "Pulling latest image..."
+          docker-compose pull
+
+          echo "Starting services..."
+          docker-compose up -d
