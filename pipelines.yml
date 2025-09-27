@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'   # <-- your self-hosted agent pool name
+  name: 'New-pool'   # <-- replace with your self-hosted agent pool name
 
 variables:
   acrName: 'azanacr'
@@ -15,15 +15,18 @@ stages:
   jobs:
   - job: BuildAndPush
     steps:
-    - task: Docker@2
-      inputs:
-        command: buildAndPush
-        repository: $(imageName)
-        dockerfile: '**/Dockerfile'
-        containerRegistry: 'MyDockerRegistryServiceConnection'
-        tags: |
-          $(tag)
-          latest
+    - script: |
+        echo "Logging in to ACR..."
+        docker login $(acrLoginServer) -u $(acrName) -p $(acrPassword)
+
+        echo "Building Docker image..."
+        docker build -t $(acrLoginServer)/$(imageName):$(tag) .
+        docker tag $(acrLoginServer)/$(imageName):$(tag) $(acrLoginServer)/$(imageName):latest
+
+        echo "Pushing images to ACR..."
+        docker push $(acrLoginServer)/$(imageName):$(tag)
+        docker push $(acrLoginServer)/$(imageName):latest
+      displayName: "Build & Push Docker Image"
 
 - stage: Deploy
   dependsOn: Build
@@ -39,4 +42,4 @@ stages:
         cd ~/my-node-app
         docker-compose pull
         docker-compose up -d
-      displayName: "Deploy Docker Compose"
+      displayName: "Deploy with Docker Compose"
