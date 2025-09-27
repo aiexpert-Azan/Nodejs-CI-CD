@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'  # since you’re using self-hosted agent
+  name: 'New-pool'   # using your self-hosted agent
 
 variables:
   IMAGE_NAME: nodeapp
@@ -27,6 +27,9 @@ stages:
           azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):latest
         docker push azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):latest
       displayName: 'Build & Push Docker Image'
+      env:
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
 
 - stage: Deploy
   dependsOn: Build
@@ -40,7 +43,7 @@ stages:
           cd ~/my-node-app
           echo "Logging in to ACR..."
           docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
-            -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
+            -u $ACR_USERNAME -p $ACR_PASSWORD
 
           echo "Stopping old containers for this project..."
           docker-compose down || true
@@ -53,3 +56,6 @@ stages:
 
           echo "Starting services..."
           docker-compose up -d
+      env:
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
