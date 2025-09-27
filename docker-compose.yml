@@ -1,8 +1,10 @@
-version: '3'
+version: '3.8'
+
 services:
   nodeapp:
-    build: .
-    container_name: node_app
+    image: azanacr-f7eabjd2gsczcke4.azurecr.io/nodeapp:${TAG:-latest}
+    container_name: nodeapp
+    restart: always
     ports:
-      - "4000:5000"   # Host port 4000 -> Container port 5000
+      - "4000:5000"
 

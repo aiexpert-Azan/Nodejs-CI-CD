@@ -4,6 +4,12 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  acrName: 'azanacr'
+  acrLoginServer: 'azanacr-f7eabjd2gsczcke4.azurecr.io'
+  imageName: 'nodeapp'
+  tag: $(Build.BuildId)
+
 stages:
 - stage: Build
   jobs:
@@ -12,10 +18,12 @@ stages:
     - task: Docker@2
       inputs:
         command: buildAndPush
-        repository: mynodeapp
+        repository: $(imageName)
         dockerfile: '**/Dockerfile'
         containerRegistry: 'MyDockerRegistryServiceConnection'
-        tags: latest
+        tags: |
+          $(tag)
+          latest
 
 - stage: Deploy
   dependsOn: Build
@@ -25,9 +33,14 @@ stages:
     - task: SSH@0
       inputs:
         sshEndpoint: 'sshconnection'
-        commands: |
+        runOptions: inline
+        inline: |
+          echo "Login to ACR"
+          docker login $(acrLoginServer) -u $(acrName) -p $(acrPassword)
+          
+          echo "Deploying app"
+          export TAG=$(tag)
           cd ~/my-node-app
-          git pull origin main
-          sudo docker-compose down
-          sudo docker-compose up -d --build
+          docker-compose pull
+          docker-compose up -d
 
