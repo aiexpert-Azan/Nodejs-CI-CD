@@ -41,9 +41,9 @@ stages:
         sshEndpoint: 'sshconnection'
         commands: |
           cd ~/my-node-app
-          echo "Logging in to ACR..."
-          docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
-            -u $ACR_USERNAME -p $ACR_PASSWORD
+          echo "Logging in to ACR securely..."
+          echo $(ACR_PASSWORD) | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
+            -u $(ACR_USERNAME) --password-stdin
 
           echo "Stopping old containers for this project..."
           docker-compose down || true
@@ -56,6 +56,3 @@ stages:
 
           echo "Starting services..."
           docker-compose up -d
-      env:
-        ACR_USERNAME: $(ACR_USERNAME)
-        ACR_PASSWORD: $(ACR_PASSWORD)
