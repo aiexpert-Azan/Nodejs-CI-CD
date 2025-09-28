@@ -5,8 +5,11 @@ pool:
   name: 'New-pool'   # using your self-hosted agent
 
 variables:
-  IMAGE_NAME: nodeapp
-  IMAGE_TAG: $(Build.BuildId)
+- group: variable group   # <-- link your variable group here
+- name: IMAGE_NAME
+  value: nodeapp
+- name: IMAGE_TAG
+  value: $(Build.BuildId)
 
 stages:
 - stage: Build
@@ -15,8 +18,8 @@ stages:
     steps:
     - script: |
         echo "Logging in to ACR..."
-        docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
-          -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
+        echo "$ACR_PASSWORD" | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
+          -u "$ACR_USERNAME" --password-stdin
 
         echo "Building and pushing image..."
         docker build -t azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) .
@@ -39,11 +42,12 @@ stages:
     - task: SSH@0
       inputs:
         sshEndpoint: 'sshconnection'
-        commands: |
+        runOptions: inline
+        inline: |
           cd ~/my-node-app
           echo "Logging in to ACR securely..."
-          echo $(ACR_PASSWORD) | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
-            -u $(ACR_USERNAME) --password-stdin
+          echo "$ACR_PASSWORD" | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
+            -u "$ACR_USERNAME" --password-stdin
 
           echo "Stopping old containers for this project..."
           docker-compose down || true
@@ -56,3 +60,6 @@ stages:
 
           echo "Starting services..."
           docker-compose up -d
+      env:
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
