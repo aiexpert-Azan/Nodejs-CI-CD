@@ -2,45 +2,41 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'   # self-hosted agent
+  name: 'New-pool'   # your self-hosted agent pool
 
 variables:
-- group: variable group   # link your ACR credentials here
-- name: IMAGE_NAME
-  value: nodeapp
-- name: IMAGE_TAG
-  value: $(Build.BuildId)
+  IMAGE_NAME: nodeapp
+  IMAGE_TAG: $(Build.BuildId)
+  ACR_NAME: azanacr-f7eabjd2gsczcke4
+  ACR_LOGIN_SERVER: azanacr-f7eabjd2gsczcke4.azurecr.io
 
 stages:
-# -------------------------
-# Build & Push Stage
-# -------------------------
 - stage: Build
+  displayName: Build & Push
   jobs:
   - job: BuildDocker
     steps:
     - script: |
-        echo "Logging in to ACR..."
-        echo "$ACR_PASSWORD" | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
-          -u "$ACR_USERNAME" --password-stdin
+        echo $(ACR_PASSWORD) | docker login $(ACR_LOGIN_SERVER) \
+          -u $(ACR_USERNAME) --password-stdin
 
-        echo "Building and pushing image..."
-        docker build -t azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) .
-        docker push azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
+        echo "Building Docker image..."
+        docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
 
-        echo "Tagging latest..."
-        docker tag azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) \
-          azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):latest
-        docker push azanacr-f7eabjd2gsczcke4.azurecr.io/$(IMAGE_NAME):latest
-      displayName: 'Build & Push Docker Image'
+        echo "Pushing image with build tag..."
+        docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
+
+        echo "Tagging as latest..."
+        docker tag $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) \
+          $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
+        docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
+      displayName: 'Build & Push to ACR'
       env:
         ACR_USERNAME: $(ACR_USERNAME)
         ACR_PASSWORD: $(ACR_PASSWORD)
 
-# -------------------------
-# Deploy Stage
-# -------------------------
 - stage: Deploy
+  displayName: Deploy to VM
   dependsOn: Build
   jobs:
   - job: DeployToVM
@@ -48,20 +44,12 @@ stages:
     - task: SSH@0
       inputs:
         sshEndpoint: 'sshconnection'
-        runOptions: inline
-        inline: |
-          echo "===== Debug Info ====="
-          whoami
-          id
-          groups
-          ls -l /var/run/docker.sock
-          echo "======================"
-
+        commands: |
           cd ~/my-node-app
 
-          echo "Logging in to ACR securely..."
-          echo "$ACR_PASSWORD" | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
-            -u "$ACR_USERNAME" --password-stdin
+          echo "Logging in to ACR..."
+          echo $(ACR_PASSWORD) | docker login $(ACR_LOGIN_SERVER) \
+            -u $(ACR_USERNAME) --password-stdin
 
           echo "Stopping old containers for this project..."
           docker-compose down || true
