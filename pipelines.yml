@@ -2,16 +2,19 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'   # using your self-hosted agent
+  name: 'New-pool'   # self-hosted agent
 
 variables:
-- group: variable group   # <-- link your variable group here
+- group: variable group   # link your ACR credentials here
 - name: IMAGE_NAME
   value: nodeapp
 - name: IMAGE_TAG
   value: $(Build.BuildId)
 
 stages:
+# -------------------------
+# Build & Push Stage
+# -------------------------
 - stage: Build
   jobs:
   - job: BuildDocker
@@ -34,6 +37,9 @@ stages:
         ACR_USERNAME: $(ACR_USERNAME)
         ACR_PASSWORD: $(ACR_PASSWORD)
 
+# -------------------------
+# Deploy Stage
+# -------------------------
 - stage: Deploy
   dependsOn: Build
   jobs:
@@ -44,7 +50,15 @@ stages:
         sshEndpoint: 'sshconnection'
         runOptions: inline
         inline: |
+          echo "===== Debug Info ====="
+          whoami
+          id
+          groups
+          ls -l /var/run/docker.sock
+          echo "======================"
+
           cd ~/my-node-app
+
           echo "Logging in to ACR securely..."
           echo "$ACR_PASSWORD" | docker login azanacr-f7eabjd2gsczcke4.azurecr.io \
             -u "$ACR_USERNAME" --password-stdin
