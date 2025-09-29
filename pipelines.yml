@@ -56,10 +56,7 @@ stages:
           cd ~/my-node-app
 
           echo "Logging in to Azure..."
-          az login --service-principal \
-            -u $AZURE_CLIENT_ID \
-            -p $AZURE_CLIENT_SECRET \
-            --tenant $AZURE_TENANT_ID
+          az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
 
           echo "Logging in to ACR..."
           az acr login --name $ACR_NAME
