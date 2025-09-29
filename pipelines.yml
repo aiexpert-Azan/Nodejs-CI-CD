@@ -7,7 +7,7 @@ pool:
 variables:
   IMAGE_NAME: nodeapp
   IMAGE_TAG: $(Build.BuildId)
-  ACR_NAME: azanacr-f7eabjd2gsczcke4
+  ACR_NAME: azanacr
   ACR_LOGIN_SERVER: azanacr-f7eabjd2gsczcke4.azurecr.io
 
 stages:
@@ -48,7 +48,7 @@ stages:
           cd ~/my-node-app
 
           echo "Logging in to ACR..."
-          echo $ACR_PASSWORD | docker login $(ACR_LOGIN_SERVER) \
+          echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER \
             -u $ACR_USERNAME --password-stdin
 
           echo "Stopping old containers for this project..."
