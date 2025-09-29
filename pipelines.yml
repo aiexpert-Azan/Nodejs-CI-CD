@@ -48,8 +48,8 @@ stages:
           cd ~/my-node-app
 
           echo "Logging in to ACR..."
-          echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER \
-            -u $ACR_USERNAME --password-stdin
+          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" \
+            -u "$ACR_USERNAME" --password-stdin
 
           echo "Stopping old containers for this project..."
           docker-compose down || true
