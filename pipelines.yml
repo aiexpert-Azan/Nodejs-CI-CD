@@ -2,10 +2,10 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'   # self-hosted agent pool ka naam
+  name: 'New-pool'   # tumhara self-hosted agent pool ka naam
 
 variables:
-- group: variable group   # <-- apne variable group ka naam yahan likhna
+- group: variable group   # tumhara variable group ka naam
 
 stages:
 # -------------------- BUILD STAGE --------------------
@@ -15,11 +15,14 @@ stages:
   - job: BuildDocker
     steps:
     - script: |
-        echo "Logging in to Azure..."
-        az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+        echo "Logging in to Azure with Service Principal..."
+        az login --service-principal \
+          --username $(AZURE_CLIENT_ID) \
+          --password $(AZURE_CLIENT_SECRET) \
+          --tenant $(AZURE_TENANT_ID)
 
         echo "Logging in to ACR..."
-        az acr login -n $ACR_NAME
+        az acr login -n $(ACR_NAME)
 
         echo "Building Docker image..."
         docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
@@ -46,8 +49,11 @@ stages:
         commands: |
           cd ~/my-node-app
 
-          echo "Logging in to Azure..."
-          az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+          echo "Logging in to Azure with Service Principal..."
+          az login --service-principal \
+            --username $AZURE_CLIENT_ID \
+            --password $AZURE_CLIENT_SECRET \
+            --tenant $AZURE_TENANT_ID
 
           echo "Logging in to ACR..."
           az acr login -n $ACR_NAME
