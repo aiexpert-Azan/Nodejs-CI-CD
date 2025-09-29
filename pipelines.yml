@@ -11,13 +11,23 @@ variables:
   ACR_LOGIN_SERVER: azanacr-f7eabjd2gsczcke4.azurecr.io
 
 stages:
+# ======================
+# Build & Push Stage
+# ======================
 - stage: Build
   displayName: Build & Push
   jobs:
   - job: BuildDocker
     steps:
     - script: |
-        echo $(ACR_PASSWORD) | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
+        echo "Logging in to Azure..."
+        az login --service-principal \
+          -u $(AZURE_CLIENT_ID) \
+          -p $(AZURE_CLIENT_SECRET) \
+          --tenant $(AZURE_TENANT_ID)
+
+        echo "Logging in to ACR..."
+        az acr login --name $(ACR_NAME)
 
         echo "Building Docker image..."
         docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
@@ -29,10 +39,10 @@ stages:
         docker tag $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
         docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
       displayName: 'Build & Push to ACR'
-      env:
-        ACR_USERNAME: $(ACR_USERNAME)
-        ACR_PASSWORD: $(ACR_PASSWORD)
 
+# ======================
+# Deploy Stage
+# ======================
 - stage: Deploy
   displayName: Deploy to VM
   dependsOn: Build
@@ -45,10 +55,16 @@ stages:
         commands: |
           cd ~/my-node-app
 
-          echo "Logging in to ACR..."
-          echo "$ACR_PASSWORD" | docker login -u "$ACR_USERNAME" --password-stdin "$ACR_LOGIN_SERVER"
+          echo "Logging in to Azure..."
+          az login --service-principal \
+            -u $AZURE_CLIENT_ID \
+            -p $AZURE_CLIENT_SECRET \
+            --tenant $AZURE_TENANT_ID
 
-          echo "Stopping old containers for this project..."
+          echo "Logging in to ACR..."
+          az acr login --name $ACR_NAME
+
+          echo "Stopping old containers..."
           docker-compose down || true
 
           echo "Cleaning up unused images..."
@@ -60,6 +76,8 @@ stages:
           echo "Starting services..."
           docker-compose up -d
       env:
-        ACR_USERNAME: $(ACR_USERNAME)
-        ACR_PASSWORD: $(ACR_PASSWORD)
+        AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+        AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+        AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+        ACR_NAME: $(ACR_NAME)
         ACR_LOGIN_SERVER: $(ACR_LOGIN_SERVER)
