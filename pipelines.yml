@@ -2,7 +2,7 @@ trigger:
 - main
 
 pool:
-  name: 'New-pool'   # your self-hosted agent pool
+  name: 'New-pool'   # self-hosted agent pool
 
 variables:
   IMAGE_NAME: nodeapp
@@ -17,8 +17,7 @@ stages:
   - job: BuildDocker
     steps:
     - script: |
-        echo $(ACR_PASSWORD) | docker login $(ACR_LOGIN_SERVER) \
-          -u $(ACR_USERNAME) --password-stdin
+        echo $(ACR_PASSWORD) | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
 
         echo "Building Docker image..."
         docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) .
@@ -27,8 +26,7 @@ stages:
         docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
 
         echo "Tagging as latest..."
-        docker tag $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) \
-          $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
+        docker tag $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
         docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
       displayName: 'Build & Push to ACR'
       env:
@@ -48,8 +46,7 @@ stages:
           cd ~/my-node-app
 
           echo "Logging in to ACR..."
-          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" \
-            -u "$ACR_USERNAME" --password-stdin
+          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
 
           echo "Stopping old containers for this project..."
           docker-compose down || true
