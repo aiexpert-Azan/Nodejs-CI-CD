@@ -55,7 +55,7 @@ stages:
           docker-compose version || docker compose version
 
           echo "=== Azure Login ==="
-          az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+          az login --service-principal --username $ENV_AZURE_CLIENT_ID --password $ENV_AZURE_CLIENT_SECRET --tenant $ENV_AZURE_TENANT_ID
 
           echo "=== ACR Login ==="
           az acr login -n $ACR_NAME
