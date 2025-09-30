@@ -17,7 +17,6 @@ stages:
     - script: |
         echo "Logging in to Azure with Service Principal..."
         az login --service-principal --username $(AZURE_CLIENT_ID) --password $(AZURE_CLIENT_SECRET) --tenant $(AZURE_TENANT_ID)
-
         echo "Logging in to ACR..."
         az acr login -n $(ACR_NAME)
 
@@ -44,7 +43,15 @@ stages:
       inputs:
         sshEndpoint: 'sshconnection'
         commands: |
-          cd ~/my-node-app
+          # Move into app directory
+          cd /home/azan2/my-node-app
+
+          echo "=== DEBUG: Where am I? ==="
+          pwd
+          ls -la
+
+          echo "=== DEBUG: Check Docker Compose installation ==="
+          docker-compose version || docker compose version
 
           echo "Logging in to Azure with Service Principal..."
           az login --service-principal --username $(AZURE_CLIENT_ID) --password $(AZURE_CLIENT_SECRET) --tenant $(AZURE_TENANT_ID)
@@ -53,18 +60,13 @@ stages:
           az acr login -n $(ACR_NAME)
 
           echo "Stopping old containers for this project..."
-          docker-compose down || true
+          docker-compose down || docker compose down || true
 
           echo "Cleaning up unused images..."
           docker image prune -af || true
 
           echo "Pulling latest image..."
-          docker-compose pull
+          docker-compose pull || docker compose pull
 
           echo "Starting services..."
-          docker-compose up -d
-      env:
-        AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
-        AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-        AZURE_TENANT_ID: $(AZURE_TENANT_ID)
-        ACR_NAME: $(ACR_NAME)
+          docker-compose up -d || docker compose up -d
