@@ -32,47 +32,27 @@ stages:
         docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
       displayName: 'Build & Push to ACR'
 
-# -------------------- DEPLOY STAGE --------------------
-# ================== DEPLOY STAGE ==================
+# -------------------- DEPLOY (DEBUG) --------------------
 - stage: Deploy
-  displayName: Deploy to VM
+  displayName: Debug Variables Only
   dependsOn: Build
   jobs:
-  - job: DeployToVM
-    displayName: SSH Deploy Job
-    steps:
-    - task: SSH@0
-      displayName: Deploy via SSH
-      inputs:
-        sshEndpoint: 'sshconnection'   # Must match the service connection name
-        commands: |
-          echo "=== Moving into project directory ==="
-          cd /home/azan2/my-node-app
-          pwd
-          ls -la
+    - job: DebugVars
+      displayName: "Print pipeline variables"
+      steps:
+        - script: |
+            echo "=== Debugging Pipeline Variables ==="
 
-          echo "=== Docker Compose version check ==="
-          docker-compose version || docker compose version
+            echo "ACR_NAME = $(ACR_NAME)"
+            echo "IMAGE_NAME = $(IMAGE_NAME)"
+            echo "IMAGE_TAG = $(IMAGE_TAG)"
 
-          echo "=== Azure Login ==="
-          az login --service-principal --username $ENV_AZURE_CLIENT_ID --password $ENV_AZURE_CLIENT_SECRET --tenant $ENV_AZURE_TENANT_ID
+            echo "AZURE_CLIENT_ID = $(AZURE_CLIENT_ID)"      # should show ***
+            echo "AZURE_TENANT_ID = $(AZURE_TENANT_ID)"      # may show masked
+            echo "AZURE_CLIENT_SECRET = $(AZURE_CLIENT_SECRET)"  # will show ***
 
-          echo "=== ACR Login ==="
-          az acr login -n $ACR_NAME
-
-          echo "=== Stop old containers ==="
-          docker-compose down || docker compose down || true
-
-          echo "=== Cleanup unused images ==="
-          docker image prune -af || true
-
-          echo "=== Pull latest image ==="
-          docker-compose pull || docker compose pull
-
-          echo "=== Start containers ==="
-          docker-compose up -d || docker compose up -d
-      env:
-        AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
-        AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-        AZURE_TENANT_ID: $(AZURE_TENANT_ID)
-        ACR_NAME: $(ACR_NAME)
+            echo "--- Checking lengths of secrets ---"
+            echo "AZURE_CLIENT_ID length: ${#AZURE_CLIENT_ID}"
+            echo "AZURE_CLIENT_SECRET length: ${#AZURE_CLIENT_SECRET}"
+            echo "AZURE_TENANT_ID length: ${#AZURE_TENANT_ID}"
+          displayName: "Print variable values (safe check)"
