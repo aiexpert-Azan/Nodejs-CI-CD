@@ -55,7 +55,7 @@ stages:
               cd ~/my-node-app
 
               echo "Logging in to Azure..."
-              az login --service-principal --username "$ENV_AZURE_CLIENT_ID" --password "$ENV_AZURE_CLIENT_SECRET" --tenant "$ENV_AZURE_TENANT_ID"
+              az login --service-principal --username "$AZURE_CLIENT_ID" --password "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
 
               echo "Logging in to ACR..."
               az acr login -n $ENV_ACR_NAME
@@ -72,7 +72,7 @@ stages:
               echo "Starting services..."
               docker-compose up -d
           env:
-            ENV_AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
-            ENV_AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-            ENV_AZURE_TENANT_ID: $(AZURE_TENANT_ID)
-            ENV_ACR_NAME: $(ACR_NAME)
+            AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+            AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+            AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+            ACR_NAME: $(ACR_NAME)
