@@ -43,25 +43,36 @@ stages:
 
 # -------------------- DEPLOY (DEBUG) --------------------
 - stage: Deploy
-  displayName: Debug Variables Only
+  displayName: Deploy to VM
   dependsOn: Build
   jobs:
-    - job: DebugVars
-      displayName: "Print pipeline variables"
+    - job: DeployToVM
       steps:
-        - script: |
-            echo "=== Debugging Pipeline Variables ==="
+        - task: SSH@0
+          inputs:
+            sshEndpoint: 'sshconnection'
+            commands: |
+              cd ~/my-node-app
 
-            echo "ACR_NAME = $(ACR_NAME)"
-            echo "IMAGE_NAME = $(IMAGE_NAME)"
-            echo "IMAGE_TAG = $(IMAGE_TAG)"
+              echo "Logging in to Azure..."
+              az login --service-principal --username "$ENV_AZURE_CLIENT_ID" --password "$ENV_AZURE_CLIENT_SECRET" --tenant "$ENV_AZURE_TENANT_ID"
 
-            echo "AZURE_CLIENT_ID = $(AZURE_CLIENT_ID)"      # should show ***
-            echo "AZURE_TENANT_ID = $(AZURE_TENANT_ID)"      # may show masked
-            echo "AZURE_CLIENT_SECRET = $(AZURE_CLIENT_SECRET)"  # will show ***
+              echo "Logging in to ACR..."
+              az acr login -n $ENV_ACR_NAME
 
-            echo "--- Checking lengths of secrets ---"
-            echo "AZURE_CLIENT_ID length: ${#AZURE_CLIENT_ID}"
-            echo "AZURE_CLIENT_SECRET length: ${#AZURE_CLIENT_SECRET}"
-            echo "AZURE_TENANT_ID length: ${#AZURE_TENANT_ID}"
-          displayName: "Print variable values (safe check)"
+              echo "Stopping old containers..."
+              docker-compose down || true
+
+              echo "Cleaning up unused images..."
+              docker image prune -af || true
+
+              echo "Pulling latest image..."
+              docker-compose pull
+
+              echo "Starting services..."
+              docker-compose up -d
+          env:
+            ENV_AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+            ENV_AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+            ENV_AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+            ENV_ACR_NAME: $(ACR_NAME)
