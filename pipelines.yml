@@ -51,20 +51,11 @@ stages:
         - task: SSH@0
           inputs:
             sshEndpoint: 'sshconnection'
-            commands: |
+            runOptions: 'inline'
+            inline: |
               echo "=== DEBUG ENV VARIABLES ON VM ==="
-              echo "CLIENT_ID: $AZURE_CLIENT_ID"
-              echo "TENANT_ID RAW: '$AZURE_TENANT_ID'"
-              echo "TENANT_ID TRIMMED: '$(echo $AZURE_TENANT_ID | tr -d '[:space:]')'"
+              echo "CLIENT_ID: $(AZURE_CLIENT_ID)"
+              echo "TENANT_ID RAW: '$(AZURE_TENANT_ID)'"
               echo "SECRET length: ${#AZURE_CLIENT_SECRET}"
 
-              az login --service-principal \
-                --username "$AZURE_CLIENT_ID" \
-                --password "$AZURE_CLIENT_SECRET" \
-                --tenant "$(echo $AZURE_TENANT_ID | tr -d '[:space:]')"
-
-              az account show
-          env:
-            AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
-            AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-            AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+              az login --service-principal --username "$(AZURE_CLIENT_ID)" --password "$(AZURE_CLIENT_SECRET)" --tenant "$(AZURE_TENANT_ID)"
