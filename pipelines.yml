@@ -58,4 +58,20 @@ stages:
               echo "TENANT_ID RAW: '$(AZURE_TENANT_ID)'"
               echo "SECRET length: ${#AZURE_CLIENT_SECRET}"
 
+              echo "=== Azure Login ==="
               az login --service-principal --username "$(AZURE_CLIENT_ID)" --password "$(AZURE_CLIENT_SECRET)" --tenant "$(AZURE_TENANT_ID)"
+
+              echo "=== Docker Pull from ACR ==="
+              docker pull $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) || true
+
+              echo "=== Stop & Remove Old Container (if exists) ==="
+              docker stop nodeapp || true
+              docker rm nodeapp || true
+
+              echo "=== Run New Container ==="
+              docker run -d --name nodeapp -p 4000:5000 \
+                --restart always \
+                $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
+
+              echo "=== Deployment finished successfully! ==="
+              exit 0
